@@ -1,6 +1,6 @@
 import fs from "fs";
 
-const csvContent = fs.readFileSync('Day2.csv', 'utf8');
+const csvContent = fs.readFileSync('Day2/Day2.csv', 'utf8');
 const rows = csvContent.trim().split('\n');
 
 let total = 0;

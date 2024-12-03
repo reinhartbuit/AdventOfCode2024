@@ -1,5 +1,5 @@
 import fs from "fs";
-const csvContent = fs.readFileSync('Day3.csv', 'utf8');
+const csvContent = fs.readFileSync('Day3/Day3.csv', 'utf8');
 let total = 0;
 for(let i=0; i<csvContent.length; i++){
     const slice = csvContent.slice(i);

@@ -1,6 +1,6 @@
 import fs from "fs";
 
-const csvContent = fs.readFileSync('Day1.csv', 'utf8');
+const csvContent = fs.readFileSync('Day1/Day1.csv', 'utf8');
 const rows = csvContent.trim().split('\n');
 
 const arr1 = [];
