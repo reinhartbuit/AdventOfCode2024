@@ -1,6 +1,6 @@
 import fs from "fs";
 
-const csvContent = fs.readFileSync('Day4/Day4.csv', 'utf8');
+const csvContent = fs.readFileSync('Day4/Day6.csv', 'utf8');
 const rows = csvContent.trim().split('\n');
 let count = 0;
 for(let i = 0; i < rows.length; i++) {
