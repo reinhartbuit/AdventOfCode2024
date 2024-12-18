@@ -14,12 +14,6 @@ let startingY = 0
 do{
     row = rows[c].split('')
     map.push(row)
-    for(let i = 0; i < row.length; i++){
-        if(row[i] === '@'){
-            startingX = i
-            startingY = c
-        }
-    }
     c++
 } while (c < rows.length && row.length !== 0);
 map.length = c-1;
@@ -31,27 +25,56 @@ do{
     c++
 } while (c < rows.length && row.length !== 0);
 
+let newMap = [];
+for(let i = 0; i < map.length; i++){
+    newMap.push([])
+    for(let j = 0; j < map.length*2; j++) {
+        newMap[i].push('.')
+    }
+}
+console.log(newMap)
+
+
+for(let i = 0; i < map.length; i++){
+    for(let j = 0; j < map.length; j++){
+        if(map[i][j] === '@'){
+            newMap[i][j+j] = '@'
+            startingX = j+j
+            startingY = i
+            newMap[i][j+1+j] = '.'
+        }
+        if(map[i][j] === '.'){
+            newMap[i][j+j] = '.'
+            newMap[i][j+j+1] = '.'
+        }
+        if(map[i][j] === '#'){
+            newMap[i][j+j] = '#'
+            newMap[i][j+j+1] = '#'
+        }
+        if(map[i][j] === 'O'){
+            newMap[i][j+j] = '['
+            newMap[i][j+j+1] = ']'
+        }
+    }
+}
+
+
+console.log(newMap)
+writeMultidimensionalArrayToFile(newMap, 'output.txt')
+
 console.log(startingX, startingY);
 //positions.length = 11
 for(let pos of positions){
     let newPos = next(startingX, startingY, pos);
     console.log(newPos)
-    console.log(pos)
     if(isWall(newPos.x, newPos.y)){
         continue
     }
     if(isEmpty(newPos.x, newPos.y, pos)){
-        map[newPos.y][newPos.x] = '@'
-        map[startingY][startingX] = '.'
+        newMap[newPos.y][newPos.x] = '@'
+        newMap[startingY][startingX] = '.'
     } else {
         let n = returnBox(newPos.x, newPos.y, pos)
-        if(n){
-            map[n.y][n.x] = 'O'
-            map[startingY][startingX] = '.'
-            map[newPos.y][newPos.x] = '@'
-        } else {
-            continue
-        }
 
         // newPos.x = n.x
         // newPos.y = n.y
@@ -59,15 +82,15 @@ for(let pos of positions){
 
     startingX = newPos.x
     startingY = newPos.y
-    writeMultidimensionalArrayToFile(map, 'output.txt', pos)
+    writeMultidimensionalArrayToFile(newMap, 'output.txt', pos)
    // console.log(map)
 
 }
 let total = 0
-for(let i = 0; i < map.length; i++){
-    for(let j = 0; j < map[i].length; j++){
-        if(map[i][j] === 'O'){
-            console.log(i,j)
+for(let i = 0; i < newMap.length; i++){
+    for(let j = 0; j < newMap[i].length; j++){
+        if(newMap[i][j] === 'O'){
+            //console.log(i,j)
             total += 100 * i + j
         }
     }
@@ -76,26 +99,61 @@ for(let i = 0; i < map.length; i++){
 console.log(total)
 
 function isWall(x,y){
-    return map[y][x] === '#';
+    return newMap[y][x] === '#';
 }
 function isEmpty(x,y){
-    return map[y][x] === '.';
+    return newMap[y][x] === '.';
 }
 function returnBox(x,y, pos){
-    console.log(pos, x , y)
-    if(map[y][x] !== 'O'){
-        console.log(map[y][x]);
+    if(newMap[y][x] !== '['  || newMap[y][x+1] !== ']'){
         return false;
     }
-    if(isWall(x, y)){
-        return false;
+    if(pos === '^' && newMap[y][x] === '['){
+        let n = next(x,y, pos);
+        if(newMap[n.y][n.x] === '.'){
+            newMap[n.y][n.x] = '['
+            newMap[y][x] = '.'
+            newMap[y][x] = '@'
+            newMap[y+1][x] = '.'
+            newMap[n.y][n.x+1] = ']'
+            newMap[y][x+1] = '.'
+        }
+        n = next(n.x,n.y, pos);
+
     }
-    let n = next(x,y, pos);
-    console.log(n)
-    if(isEmpty(n.x, n.y)){
-        return {x: n.x, y: n.y};
+
+    // console.log(pos, x , y)
+    // if(map[y][x] !== '[' && map[y][x+1] === ']'){
+    //     return false;
+    // }
+    // if(isWall(x, y)){
+    //     return false;
+    // }
+    // let n = next(x+1,y, pos);
+    // console.log(n)
+    // if(isEmpty(n.x, n.y)){
+    //     return {x: n.x, y: n.y};
+    // }
+    // return returnBox(n.x, n.y, pos);
+}
+
+function getNextDot(x,y, pos){
+    let value = newMap[y][x];
+    if(value === '.'){
+        return {x:x,y:y};
     }
-    return returnBox(n.x, n.y, pos);
+    if(pos === '^'){
+        return getNextDot(x,y-1, pos);
+    }
+    if(pos === 'v'){
+        return getNextDot(x,y+1, pos);
+    }
+    if(pos === '<'){
+        return getNextDot(x-1,y, pos);
+    }
+    if(pos === '>'){
+        return getNextDot(x+1,y, pos);
+    }
 }
 
 function next(x,y,pos){

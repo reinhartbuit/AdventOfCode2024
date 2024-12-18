@@ -1,105 +1,135 @@
 import fs from "fs";
 
-const csvContent = fs.readFileSync('Day14.txt', 'utf8');
+const csvContent = fs.readFileSync('Day15.txt', 'utf8');
 const rows = csvContent.split('\n');
 
-let boardX = 101
-let boardY = 103
+Object.defineProperty(process.stdout, 'columns', { value: 200 });
 
+let map = []
 let positions = []
-for(let i = 0; i < rows.length ; i++){
-    let records = rows[i].split(' ');
-
-    let x = Number(records[0].substring(records[0].indexOf('p=')+2,records[0].indexOf(',')));
-    let y = Number(records[0].substring(records[0].indexOf(',')+1));
-
-    let xV = Number(records[1].substring(records[1].indexOf('v=')+2,records[1].indexOf(',')));
-    let yV = Number(records[1].substring(records[1].indexOf(',')+1));
-
-
-
-    for(let j = 0; j < 100; j++){
-        x += xV
-        y += yV
-
-        if(x >= boardX){
-            x =  x - boardX
-        }
-        if(x < 0){
-            x = boardX + x
-        }
-
-        if(y >= boardY){
-            y = y - boardY
-        }
-        if(y < 0){
-            y = boardY + y
+let c = 0
+let row
+let startingX = 0
+let startingY = 0
+do{
+    row = rows[c].split('')
+    map.push(row)
+    for(let i = 0; i < row.length; i++){
+        if(row[i] === '@'){
+            startingX = i
+            startingY = c
         }
     }
-    let xMiddle = Math.floor(boardX/2)
-    let yMiddle = Math.floor(boardY/2)
-    if(x >= 0 && x < xMiddle && y >= 0 && y < yMiddle){
-        positions.push({x, y, q: 1});
-    } else if (x > xMiddle && y >= 0 && y < yMiddle){
-        positions.push({x, y, q: 2});
-    } else if (x >= 0 && x< xMiddle && y > yMiddle){
-        positions.push({x, y, q: 3});
-    } else if (x > xMiddle && y > yMiddle){
-        positions.push({x, y, q: 4});
-    }
+    c++
+} while (c < rows.length && row.length !== 0);
+map.length = c-1;
 
 
+do{
+    row = rows[c].split('')
+    positions.push(...row)
+    c++
+} while (c < rows.length && row.length !== 0);
 
-}
-
-console.log(positions);
-
-let q1 = 0
-let q2 = 0
-let q3 = 0
-let q4= 0
-
+console.log(startingX, startingY);
+//positions.length = 11
 for(let pos of positions){
-    if(pos.q === 1){
-        q1++
+    let newPos = next(startingX, startingY, pos);
+    console.log(newPos)
+    console.log(pos)
+    if(isWall(newPos.x, newPos.y)){
+        continue
     }
-    if(pos.q === 2){
-        q2++
+    if(isEmpty(newPos.x, newPos.y, pos)){
+        map[newPos.y][newPos.x] = '@'
+        map[startingY][startingX] = '.'
+    } else {
+        let n = returnBox(newPos.x, newPos.y, pos)
+        if(n){
+            map[n.y][n.x] = 'O'
+            map[startingY][startingX] = '.'
+            map[newPos.y][newPos.x] = '@'
+        } else {
+            continue
+        }
+
+        // newPos.x = n.x
+        // newPos.y = n.y
     }
-    if(pos.q === 3){
-        q3++
+
+    startingX = newPos.x
+    startingY = newPos.y
+    writeMultidimensionalArrayToFile(map, 'output.txt', pos)
+   // console.log(map)
+
+}
+let total = 0
+for(let i = 0; i < map.length; i++){
+    for(let j = 0; j < map[i].length; j++){
+        if(map[i][j] === 'O'){
+            console.log(i,j)
+            total += 100 * i + j
+        }
     }
-    if(pos.q === 4){
-        q4++
+
+}
+console.log(total)
+
+function isWall(x,y){
+    return map[y][x] === '#';
+}
+function isEmpty(x,y){
+    return map[y][x] === '.';
+}
+function returnBox(x,y, pos){
+    console.log(pos, x , y)
+    if(map[y][x] !== 'O'){
+        console.log(map[y][x]);
+        return false;
+    }
+    if(isWall(x, y)){
+        return false;
+    }
+    let n = next(x,y, pos);
+    console.log(n)
+    if(isEmpty(n.x, n.y)){
+        return {x: n.x, y: n.y};
+    }
+    return returnBox(n.x, n.y, pos);
+}
+
+function next(x,y,pos){
+    let xx = x
+    let yy = y
+    if(pos === '^'){
+        yy = y - 1
+    }
+    if(pos === 'v'){
+        yy = y + 1
+    }
+    if(pos === '>'){
+        xx = x + 1
+    }
+    if(pos === '<'){
+        xx = x - 1
+    }
+    return {x: xx, y: yy}
+}
+
+function writeMultidimensionalArrayToFile(array, filePath, pos) {
+    try {
+        // Convert the array into a string representation
+        const content = array.map(row => Array.isArray(row) ? row.join('') : row).join('\n');
+
+        fs.appendFileSync(filePath, `POS: ${pos} \n`, 'utf8');
+        fs.appendFileSync(filePath, content, 'utf8');
+        fs.appendFileSync(filePath, '\n', 'utf8');
+
+        console.log(`Array successfully written to ${filePath}`);
+    } catch (error) {
+        console.error('Error writing to file:', error);
     }
 }
 
-console.log(q1 * q2 * q3 * q4);
 
-
-let array = []
-
-for(let i = 0; i < boardY ; i++){
-    array.push([])
-    for(let j = 0; j < boardX; j++){
-        array[i][j] = 0
-    }
-}
-for(let pos of positions){
-    array[pos.y][pos.x]++;
-}
-
-//console.log(array);
-
-
-
-
-
-
-function strSplice (str, i,j){
-    let newStr = str.split(''); // or newStr = [...str];
-    newStr.splice(i,j);
-    newStr = newStr.join('');
-    return newStr;
-}
 

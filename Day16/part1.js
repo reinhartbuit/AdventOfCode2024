@@ -6,115 +6,214 @@ const rows = csvContent.split('\n');
 Object.defineProperty(process.stdout, 'columns', { value: 200 });
 
 let map = []
-let positions = []
 let c = 0
 let row
-let startingX = 0
-let startingY = 0
+let startX = 0
+let startY = 0
+let endX = 0
+let endY = 0
+let countDot = 0
+let score = 0
+let min = 90000
 do{
     row = rows[c].split('')
     map.push(row)
     for(let i = 0; i < row.length; i++){
-        if(row[i] === '@'){
-            startingX = i
-            startingY = c
+        if(row[i] === 'S'){
+            startX = i
+            startY = c
+        }
+        if(row[i] === 'E'){
+            endX = i
+            endY = c
+        }
+        if(row[i] === '.'){
+            countDot++
         }
     }
     c++
 } while (c < rows.length && row.length !== 0);
-map.length = c-1;
+
+let paths = []
+
+check({x: startX, y: startY}, [] ,'S')
 
 
-do{
-    row = rows[c].split('')
-    positions.push(...row)
-    c++
-} while (c < rows.length && row.length !== 0);
 
-console.log(startingX, startingY);
-//positions.length = 11
-for(let pos of positions){
-    let newPos = next(startingX, startingY, pos);
-    console.log(newPos)
-    console.log(pos)
-    if(isWall(newPos.x, newPos.y)){
-        continue
+function check(currLoc, path, direction){
+    const copyPath = [...path]
+
+    if(currLoc.x === endX && currLoc.y === endY){
+        score = getScore(path)
+        if(!min){
+            min = score
+        } else if(score < min){
+            min = score
+        }
+        console.log(paths.length, score, min)
+        paths.push(copyPath)
+        writeMultidimensionalArrayToFile(map, 'output.txt', JSON.stringify(score))
+        return true
     }
-    if(isEmpty(newPos.x, newPos.y, pos)){
-        map[newPos.y][newPos.x] = '@'
-        map[startingY][startingX] = '.'
-    } else {
-        let n = returnBox(newPos.x, newPos.y, pos)
-        if(n){
-            map[n.y][n.x] = 'O'
-            map[startingY][startingX] = '.'
-            map[newPos.y][newPos.x] = '@'
-        } else {
-            continue
+    if(map[currLoc.y][currLoc.x] !== '.' && map[currLoc.y][currLoc.x] !== 'S'){
+        copyPath.pop()
+        return 
+    }
+    score = getScore(path)
+    if(score >= min){
+        copyPath.pop();
+        return 
+    }
+
+    copyPath.push(direction)
+    map[currLoc.y][currLoc.x] = direction
+    if(direction !== 'v'){
+        check({x: currLoc.x, y: currLoc.y-1}, copyPath, '^');
+    }
+    if(direction !== '<'){
+        check({x: currLoc.x+1, y: currLoc.y}, copyPath, '>');
+    }
+    if(direction !== '>'){
+        check({x: currLoc.x-1, y: currLoc.y}, copyPath, '<');
+    }
+    if(direction !== '^'){
+        check({x: currLoc.x, y: currLoc.y+1}, copyPath, 'v');
+    }
+    map[currLoc.y][currLoc.x] = '.'
+
+}
+
+function getScore(p){
+    let total = 1
+    for(let i = 0; i < p.length - 1; i++){
+        if(p[i] === 'S'){
+            p[i] = '>'
+        }
+        if(p[i] === '>' && p[i+1] === '>'){
+            total++
+        }
+        if(p[i] === '>' && p[i+1] === '^'){
+            total+=1001
+        }
+        if(p[i] === '>' && p[i+1] === '<'){
+            total+=2001
+        }
+        if(p[i] === '>' && p[i+1] === 'v'){
+            total+=1001
         }
 
-        // newPos.x = n.x
-        // newPos.y = n.y
-    }
-
-    startingX = newPos.x
-    startingY = newPos.y
-    writeMultidimensionalArrayToFile(map, 'output.txt', pos)
-   // console.log(map)
-
-}
-let total = 0
-for(let i = 0; i < map.length; i++){
-    for(let j = 0; j < map[i].length; j++){
-        if(map[i][j] === 'O'){
-            console.log(i,j)
-            total += 100 * i + j
+        if(p[i] === '<' && p[i+1] === '>'){
+            total+=2001
         }
-    }
+        if(p[i] === '<' && p[i+1] === '^'){
+            total+=1001
+        }
+        if(p[i] === '<' && p[i+1] === '<'){
+            total++
+        }
+        if(p[i] === '<' && p[i+1] === 'v'){
+            total+=1001
+        }
 
-}
-console.log(total)
+        if(p[i] === 'v' && p[i+1] === '>'){
+            total+=1001
+        }
+        if(p[i] === 'v' && p[i+1] === '^'){
+            total+=2001
+        }
+        if(p[i] === 'v' && p[i+1] === '<'){
+            total+=1001
+        }
+        if(p[i] === 'v' && p[i+1] === 'v'){
+            total+=1
+        }
 
-function isWall(x,y){
-    return map[y][x] === '#';
-}
-function isEmpty(x,y){
-    return map[y][x] === '.';
-}
-function returnBox(x,y, pos){
-    console.log(pos, x , y)
-    if(map[y][x] !== 'O'){
-        console.log(map[y][x]);
-        return false;
+        if(p[i] === '^' && p[i+1] === '>'){
+            total+=1001
+        }
+        if(p[i] === '^' && p[i+1] === '^'){
+            total+=1
+        }
+        if(p[i] === '^' && p[i+1] === '<'){
+            total+=1001
+        }
+        if(p[i] === '^' && p[i+1] === 'v'){
+            total+=2001
+        }
+
     }
-    if(isWall(x, y)){
-        return false;
-    }
-    let n = next(x,y, pos);
-    console.log(n)
-    if(isEmpty(n.x, n.y)){
-        return {x: n.x, y: n.y};
-    }
-    return returnBox(n.x, n.y, pos);
+    return total
 }
 
-function next(x,y,pos){
-    let xx = x
-    let yy = y
-    if(pos === '^'){
-        yy = y - 1
-    }
-    if(pos === 'v'){
-        yy = y + 1
-    }
-    if(pos === '>'){
-        xx = x + 1
-    }
-    if(pos === '<'){
-        xx = x - 1
-    }
-    return {x: xx, y: yy}
-}
+// let min;
+// for(let p of paths){
+//     let total = 1
+//     for(let i = 0; i < p.length - 1; i++){
+//         if(p[i] === 'S'){
+//             p[i] = '>'
+//         }
+//         if(p[i] === '>' && p[i+1] === '>'){
+//             total++
+//         }
+//         if(p[i] === '>' && p[i+1] === '^'){
+//             total+=1001
+//         }
+//         if(p[i] === '>' && p[i+1] === '<'){
+//             total+=2001
+//         }
+//         if(p[i] === '>' && p[i+1] === 'v'){
+//             total+=1001
+//         }
+//
+//         if(p[i] === '<' && p[i+1] === '>'){
+//             total+=2001
+//         }
+//         if(p[i] === '<' && p[i+1] === '^'){
+//             total+=1001
+//         }
+//         if(p[i] === '<' && p[i+1] === '<'){
+//             total++
+//         }
+//         if(p[i] === '<' && p[i+1] === 'v'){
+//             total+=1001
+//         }
+//
+//         if(p[i] === 'v' && p[i+1] === '>'){
+//             total+=1001
+//         }
+//         if(p[i] === 'v' && p[i+1] === '^'){
+//             total+=2001
+//         }
+//         if(p[i] === 'v' && p[i+1] === '<'){
+//             total+=1001
+//         }
+//         if(p[i] === 'v' && p[i+1] === 'v'){
+//             total+=1
+//         }
+//
+//         if(p[i] === '^' && p[i+1] === '>'){
+//             total+=1001
+//         }
+//         if(p[i] === '^' && p[i+1] === '^'){
+//             total+=1
+//         }
+//         if(p[i] === '^' && p[i+1] === '<'){
+//             total+=1001
+//         }
+//         if(p[i] === '^' && p[i+1] === 'v'){
+//             total+=2001
+//         }
+//
+//     }
+//     if(!min){
+//         min = total
+//     }
+//     if(total < min){
+//         min = total;
+//     }
+// }
+ console.log(min);
+
 
 function writeMultidimensionalArrayToFile(array, filePath, pos) {
     try {
@@ -125,7 +224,7 @@ function writeMultidimensionalArrayToFile(array, filePath, pos) {
         fs.appendFileSync(filePath, content, 'utf8');
         fs.appendFileSync(filePath, '\n', 'utf8');
 
-        console.log(`Array successfully written to ${filePath}`);
+        //console.log(`Array successfully written to ${filePath}`);
     } catch (error) {
         console.error('Error writing to file:', error);
     }
