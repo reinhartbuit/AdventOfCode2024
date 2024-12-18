@@ -1,6 +1,16 @@
 import fs from "fs";
+import path from "node:path";
+import { fileURLToPath } from "url";
+import util from "util"
 
-const csvContent = fs.readFileSync('Day15.txt', 'utf8');
+
+
+// Get the __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Read the file
+const csvContent = fs.readFileSync(path.join(__dirname, "Day15.txt"), "utf8");
 const rows = csvContent.split('\n');
 
 Object.defineProperty(process.stdout, 'columns', { value: 200 });
@@ -14,7 +24,7 @@ let endX = 0
 let endY = 0
 let countDot = 0
 let score = 0
-let min
+let min;
 do{
     row = rows[c].split('')
     map.push(row)
@@ -34,71 +44,56 @@ do{
     c++
 } while (c < rows.length && row.length !== 0);
 
-const start = [startX,startY]
-const end = [endX,endY]
-findAllPaths(map, start, end)
+let paths = []
 
-function findAllPaths(maze, start, end) {
-    const rows = maze.length;
-    const cols = maze[0].length;
-  
-    const directions = [
-      [0, 1],   // Right
-      [1, 0],   // Down
-      [0, -1],  // Left
-      [-1, 0],  // Up
-    ];
-  
-    const queue = [];
-    const allPaths = []; // Store all valid paths
-  
-    // Start BFS with the initial position and path
-    queue.push({ position: '>', path: ['>'] });
-  
-    while (queue.length > 0) {
-      const current = queue.shift();
-      const [x, y] = current.position;
-  
-      // If we reach the end, store the path
-      if (x === end[0] && y === end[1]) {
-        allPaths.push(current.path);
-        console.log(current.path)
-        continue; // Continue to explore other paths
-      }
-  
-      // Explore all possible directions
-      for (const [dx, dy] of directions) {
-        const newX = x + dx;
-        const newY = y + dy;
-  
-        if (
-          newX >= 0 && newX < rows &&      // Within bounds (rows)
-          newY >= 0 && newY < cols &&      // Within bounds (columns)
-          maze[newX][newY] !== '#'           // Valid path (no walls)
-        ) {
-          if (!current.path.some(pos => pos[0] === newX && pos[1] === newY)) {
-            queue.push({
-              position: [newX, newY],
-              path: [...current.path, [newX, newY]],
-            });
-          }
+check({x: startX, y: startY}, [] ,'S')
+
+
+
+function check(currLoc, path, direction){
+    const copyPath = [...path]
+
+    if(currLoc.x === endX && currLoc.y === endY){
+        score = getScore(path)
+        if(!min){
+            min = score
+        } else if(score < min){
+            min = score
         }
-      }
+        console.log(paths.length, score, min)
+        paths.push(copyPath)
+        writeMultidimensionalArrayToFile(map, 'output.txt', JSON.stringify(score))
+        return true
     }
-  
-    if (allPaths.length > 0) {
-      console.log(`All possible paths (${allPaths.length}):`);
-      allPaths.forEach((path, index) => {
-        console.log(`Path ${index + 1}:`, path);
-      });
-    } else {
-      console.log("No paths found.");
+    if(map[currLoc.y][currLoc.x] !== '.' && map[currLoc.y][currLoc.x] !== 'S'){
+        copyPath.pop()
+        return 
     }
-  
-    return allPaths;
-  }
+    score = getScore(path)
+    if(score >= min){
+        copyPath.pop();
+        return 
+    }
 
-  function getScore(p){
+    copyPath.push(direction)
+    map[currLoc.y][currLoc.x] = direction
+    if(direction !== 'v'){
+        check({x: currLoc.x, y: currLoc.y-1}, copyPath, '^');
+    }
+    if(direction !== '<'){
+        check({x: currLoc.x+1, y: currLoc.y}, copyPath, '>');
+    }
+    if(direction !== '>'){
+        check({x: currLoc.x-1, y: currLoc.y}, copyPath, '<');
+    }
+    if(direction !== '^'){
+        check({x: currLoc.x, y: currLoc.y+1}, copyPath, 'v');
+    }
+    map[currLoc.y][currLoc.x] = '.'
+
+}
+
+function getScore(p){
     let total = 1
     for(let i = 0; i < p.length - 1; i++){
         if(p[i] === 'S'){
@@ -110,15 +105,8 @@ function findAllPaths(maze, start, end) {
         if(p[i] === '>' && p[i+1] === '^'){
             total+=1001
         }
-        if(p[i] === '>' && p[i+1] === '<'){
-            total+=2001
-        }
         if(p[i] === '>' && p[i+1] === 'v'){
             total+=1001
-        }
-
-        if(p[i] === '<' && p[i+1] === '>'){
-            total+=2001
         }
         if(p[i] === '<' && p[i+1] === '^'){
             total+=1001
@@ -132,9 +120,6 @@ function findAllPaths(maze, start, end) {
 
         if(p[i] === 'v' && p[i+1] === '>'){
             total+=1001
-        }
-        if(p[i] === 'v' && p[i+1] === '^'){
-            total+=2001
         }
         if(p[i] === 'v' && p[i+1] === '<'){
             total+=1001
@@ -152,13 +137,81 @@ function findAllPaths(maze, start, end) {
         if(p[i] === '^' && p[i+1] === '<'){
             total+=1001
         }
-        if(p[i] === '^' && p[i+1] === 'v'){
-            total+=2001
-        }
 
     }
     return total
 }
+
+// let min;
+// for(let p of paths){
+//     let total = 1
+//     for(let i = 0; i < p.length - 1; i++){
+//         if(p[i] === 'S'){
+//             p[i] = '>'
+//         }
+//         if(p[i] === '>' && p[i+1] === '>'){
+//             total++
+//         }
+//         if(p[i] === '>' && p[i+1] === '^'){
+//             total+=1001
+//         }
+//         if(p[i] === '>' && p[i+1] === '<'){
+//             total+=2001
+//         }
+//         if(p[i] === '>' && p[i+1] === 'v'){
+//             total+=1001
+//         }
+//
+//         if(p[i] === '<' && p[i+1] === '>'){
+//             total+=2001
+//         }
+//         if(p[i] === '<' && p[i+1] === '^'){
+//             total+=1001
+//         }
+//         if(p[i] === '<' && p[i+1] === '<'){
+//             total++
+//         }
+//         if(p[i] === '<' && p[i+1] === 'v'){
+//             total+=1001
+//         }
+//
+//         if(p[i] === 'v' && p[i+1] === '>'){
+//             total+=1001
+//         }
+//         if(p[i] === 'v' && p[i+1] === '^'){
+//             total+=2001
+//         }
+//         if(p[i] === 'v' && p[i+1] === '<'){
+//             total+=1001
+//         }
+//         if(p[i] === 'v' && p[i+1] === 'v'){
+//             total+=1
+//         }
+//
+//         if(p[i] === '^' && p[i+1] === '>'){
+//             total+=1001
+//         }
+//         if(p[i] === '^' && p[i+1] === '^'){
+//             total+=1
+//         }
+//         if(p[i] === '^' && p[i+1] === '<'){
+//             total+=1001
+//         }
+//         if(p[i] === '^' && p[i+1] === 'v'){
+//             total+=2001
+//         }
+//
+//     }
+//     if(!min){
+//         min = total
+//     }
+//     if(total < min){
+//         min = total;
+//     }
+// }
+ console.log(min);
+
+
 function writeMultidimensionalArrayToFile(array, filePath, pos) {
     try {
         // Convert the array into a string representation
